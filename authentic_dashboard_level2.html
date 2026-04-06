@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Authentic Dashboard Level 2</title>
+<style>
+body{font-family:Arial;background:#0b1a3a;color:white;margin:0;padding:20px}
+.metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.box{background:#12275a;padding:16px;border-radius:12px}
+.box.danger{border:1px solid #fb7185}
+.box.good{border:1px solid #22c55e}
+.table{width:100%;margin-top:20px;border-collapse:collapse}
+.table th,.table td{padding:10px;border-bottom:1px solid #1e3a8a;text-align:center}
+</style>
+</head>
+<body>
+
+<h2>Monthly Performance</h2>
+<div class="metrics">
+<div class="box">Goal: <span id="goal"></span></div>
+<div class="box">Won: <span id="won"></span></div>
+<div class="box">Commit: <span id="commit"></span></div>
+<div class="box">Forecast: <span id="forecast"></span></div>
+<div class="box good">Feasible: <span id="feasible"></span></div>
+<div class="box danger">Gap: <span id="gap"></span></div>
+</div>
+
+<h2>Team Performance</h2>
+<select id="filter"></select>
+<button onclick="exportCSV()">Export CSV</button>
+
+<table class="table" id="table">
+<thead>
+<tr>
+<th>Name</th><th>Goal</th><th>Won</th><th>Commit</th><th>Forecast</th><th>Feasible</th><th>Gap</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<script>
+const data=[
+{name:"Du",goal:400,won:0,commit:644,forecast:57},
+{name:"Tùng",goal:180,won:0,commit:0,forecast:68},
+{name:"Quân",goal:120,won:15,commit:36,forecast:0},
+{name:"Long",goal:180,won:0,commit:12,forecast:97},
+{name:"Dũng",goal:69,won:0,commit:0,forecast:0},
+];
+
+function calc(d){
+d.feasible=d.won+d.commit+d.forecast;
+d.gap=Math.max(d.goal-d.feasible,0);
+}
+
+data.forEach(calc);
+
+function render(){
+const filter=document.getElementById("filter").value;
+let rows=data;
+if(filter) rows=data.filter(d=>d.name===filter);
+
+rows.sort((a,b)=>b.gap-a.gap);
+
+const tbody=document.querySelector("tbody");
+tbody.innerHTML=rows.map(d=>`
+<tr>
+<td>${d.name}</td>
+<td>${d.goal}</td>
+<td>${d.won}</td>
+<td>${d.commit}</td>
+<td>${d.forecast}</td>
+<td>${d.feasible}</td>
+<td style="color:${d.gap>0?'#fb7185':'#22c55e'}">${d.gap}</td>
+</tr>`).join("");
+
+const total={
+goal:sum('goal'),
+won:sum('won'),
+commit:sum('commit'),
+forecast:sum('forecast')
+};
+total.feasible=total.won+total.commit+total.forecast;
+total.gap=Math.max(total.goal-total.feasible,0);
+
+document.getElementById("goal").innerText=total.goal;
+document.getElementById("won").innerText=total.won;
+document.getElementById("commit").innerText=total.commit;
+document.getElementById("forecast").innerText=total.forecast;
+document.getElementById("feasible").innerText=total.feasible;
+document.getElementById("gap").innerText=total.gap;
+}
+
+function sum(k){return data.reduce((s,d)=>s+d[k],0)}
+
+function exportCSV(){
+let csv="Name,Goal,Won,Commit,Forecast,Feasible,Gap\n";
+data.forEach(d=>{
+csv+=`${d.name},${d.goal},${d.won},${d.commit},${d.forecast},${d.feasible},${d.gap}\n`;
+});
+const blob=new Blob([csv]);
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="report.csv";
+a.click();
+}
+
+function init(){
+const f=document.getElementById("filter");
+f.innerHTML='<option value="">All</option>'+data.map(d=>`<option>${d.name}</option>`).join("");
+f.onchange=render;
+render();
+}
+init();
+</script>
+
+</body>
+</html>
